@@ -2,14 +2,61 @@
 App({
   onLaunch: function () {
     // 展示本地存储能力
-    var logs = wx.getStorageSync('logs') || []
-    logs.unshift(Date.now())
-    wx.setStorageSync('logs', logs)
+    // var logs = wx.getStorageSync('logs') || []
+    // logs.unshift(Date.now())
+    // wx.setStorageSync('logs', logs)
 
     // 登录
     wx.login({
       success: res => {
         // 发送 res.code 到后台换取 openId, sessionKey, unionId
+        wx.request({
+          url: this.globalData.restAdd + '/Hanbell-WCO/api/prg9f247ab6d5e4/session',
+          data: {
+            code: res.code
+          },
+          header: {
+            'content-type': 'application/json'
+          },
+          method: 'GET',
+          success: res => {
+            // console.log(res);
+            this.globalData.openId = res.data.openId
+            this.globalData.sessionKey = res.data.sessionKey
+            this.globalData.hasOpenId = true
+            this.globalData.authorized = res.data.authorized
+            if (res.data.authorized) {
+              this.globalData.employeeId = res.data.employeeId
+              this.globalData.employeeName = res.data.employeeName
+              wx.request({
+                url: this.globalData.restAdd + '/Hanbell-JRS/api/efgp/users/' + this.globalData.employeeId,
+                data: {
+                  appid: this.globalData.restId,
+                  token: this.globalData.restToken
+                },
+                header: {
+                  'content-type': 'application/json'
+                },
+                method: 'GET',
+                success: res => {
+                  this.globalData.defaultCompany = res.data.company,
+                    this.globalData.defaultCompanyName = res.data.companyName,
+                    this.globalData.defaultDeptId = res.data.deptno,
+                    this.globalData.defaultDeptName = res.data.deptname
+                },
+                fail: fail => {
+                  console.log(fail)
+                }
+              })
+            }
+            if (this.sessionInfoReadyCallback) {
+              this.sessionInfoReadyCallback(res.data)
+            }
+          },
+          fail: fail => {
+            console.log(fail)
+          }
+        })
       }
     })
     // 获取用户信息
@@ -29,11 +76,30 @@ App({
               }
             }
           })
+        } else {
+          // 还未授权
+          wx.switchTab({
+            url: '/pages/profile/profile'
+          })
         }
       }
     })
   },
   globalData: {
-    userInfo: null
+    userInfo: null,
+    hasOpenId: false,
+    openId: null,
+    sessionKey: null,
+    authorized: false,
+    employeeId: null,
+    employeeName: null,
+    defaultCompany: null,
+    defaultCompanyName: null,
+    defaultDeptId: null,
+    defaultDeptName: null,
+    restAdd: 'https://i2.hanbell.com.cn',
+    restId: '1505912014724',
+    restToken: '0ec858293fccfad55575e26b0ce31177',
+    restAuth: 'appid=1505912014724&token=0ec858293fccfad55575e26b0ce31177'
   }
 })
